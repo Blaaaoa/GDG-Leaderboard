@@ -1,98 +1,62 @@
-import React, { useCallback } from "react";
-import Particles from "react-tsparticles";
-import { Engine } from "tsparticles-engine";
-import { loadSlim } from "tsparticles-slim";
+'use client';
+import React, { useState } from "react";
 
-const ParticlesBackground = () => {
-    const particlesInit = useCallback(async (engine: Engine) => {
-        await loadSlim(engine);
-    }, []);
+interface LeaderboardEntry {
+  user_name: string;
+  __of_skill_badges_completed: string;
+}
+import CSVReader from "react-csv-reader";
 
-    return (
-        <Particles
-            id="tsparticles"
-            init={particlesInit}
-            options={{
-                background: {
-                    color: {
-                        value: "#ffffff",
-                    },
-                },
-                fpsLimit: 60,
-                interactivity: {
-                    detectsOn: "canvas",
-                    events: {
-                        onClick: {
-                            enable: true,
-                            mode: "push",
-                        },
-                        onHover: {
-                            enable: true,
-                            mode: "repulse",
-                        },
-                        resize: true,
-                    },
-                    modes: {
-                        bubble: {
-                            distance: 400,
-                            duration: 2,
-                            opacity: 0.8,
-                            size: 40,
-                        },
-                        push: {
-                            quantity: 4,
-                        },
-                        repulse: {
-                            distance: 200,
-                            duration: 0.4,
-                        },
-                    },
-                },
-                particles: {
-                    color: {
-                        value: "#000",
-                    },
-                    links: {
-                        color: "#000",
-                        distance: 150,
-                        enable: true,
-                        opacity: 0.5,
-                        width: 1,
-                    },
-                    collisions: {
-                        enable: true,
-                    },
-                    move: {
-                        direction: "none",
-                        enable: true,
-                        outMode: "bounce",
-                        random: false,
-                        speed: 6,
-                        straight: false,
-                    },
-                    number: {
-                        density: {
-                            enable: true,
-                            value_area: 800,
-                        },
-                        value: 80,
-                    },
-                    opacity: {
-                        value: 0.5,
-                    },
-                    shape: {
-                        type: "circle",
-                    },
-                    size: {
-                        random: true,
-                        value: 5,
-                    },
-                },
-                detectRetina: true,
 
-            }}
-        />
-    );
+const papaparseOptions = {
+  header: true,
+  dynamicTyping: true,
+  skipEmptyLines: true,
+  transformHeader: (header: string) => header.toLowerCase().replace(/\W/g, "_"),
 };
 
-export default ParticlesBackground;
+const AdminCSVUpload = () => {
+  const [data, setData] = useState<{ name: string; badges: number }[]>([]);
+
+  const handleForce = (uploadedData: Array<LeaderboardEntry>) => {
+    console.log(uploadedData);
+    const leaderboardData = uploadedData.map((entry) => ({
+      name: entry['user_name'], // Adjusting to match the CSV header
+      badges: parseInt(entry['__of_skill_badges_completed'], 10) || 0, // Default to 0 if undefined
+    }));
+    console.log(leaderboardData);
+
+    // Sort data based on number of badges
+    leaderboardData.sort((a, b) => b.badges - a.badges);
+    setData(leaderboardData);
+
+    // Store this data in localStorage
+    localStorage.setItem('leaderboardData', JSON.stringify(leaderboardData));
+  };
+
+  return (
+    <div className="container">
+      <CSVReader
+        cssClass="react-csv-input"
+        label="Select CSV with Skill Badges Data"
+        onFileLoaded={handleForce}
+        parserOptions={papaparseOptions}
+      />
+      <p>Upload the CSV to update leaderboard data.</p>
+      {data.length > 0 && (
+        <div>
+          <h2>Uploaded Data:</h2>
+          <ul>
+            {data.map((entry, index) => (
+              <li key={index}>
+                {entry.name} - {entry.badges} badges
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default AdminCSVUpload;
